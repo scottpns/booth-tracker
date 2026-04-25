@@ -1,0 +1,1151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Booth Tracker — Silver Oyster Productions</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0e0e0e;
+    --surface: #161616;
+    --surface2: #1f1f1f;
+    --surface3: #2a2a2a;
+    --border: #2e2e2e;
+    --accent: #c8a96e;
+    --accent2: #e8c98e;
+    --danger: #c0504d;
+    --success: #6a9e6a;
+    --text: #e8e4dc;
+    --text-dim: #888;
+    --text-dimmer: #555;
+    --radius: 6px;
+    --mono: 'DM Mono', monospace;
+    --serif: 'Playfair Display', serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 13px;
+    min-height: 100vh;
+  }
+
+  /* ── HEADER ── */
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .logo {
+    font-family: var(--serif);
+    font-size: 18px;
+    color: var(--accent);
+    letter-spacing: 0.5px;
+  }
+  .logo span { color: var(--text-dim); font-size: 11px; font-family: var(--mono); font-weight: 300; display: block; margin-top: 1px; }
+
+  .header-right { display: flex; gap: 10px; align-items: center; }
+
+  /* ── BUTTONS ── */
+  .btn {
+    font-family: var(--mono);
+    font-size: 12px;
+    padding: 7px 14px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    cursor: pointer;
+    transition: all 0.15s;
+    background: var(--surface2);
+    color: var(--text);
+  }
+  .btn:hover { background: var(--surface3); border-color: var(--accent); color: var(--accent); }
+  .btn-accent { background: var(--accent); color: #0e0e0e; border-color: var(--accent); font-weight: 500; }
+  .btn-accent:hover { background: var(--accent2); border-color: var(--accent2); color: #0e0e0e; }
+  .btn-danger { border-color: var(--danger); color: var(--danger); }
+  .btn-danger:hover { background: var(--danger); color: #fff; }
+  .btn-sm { padding: 4px 10px; font-size: 11px; }
+
+  /* ── SYNC STATUS ── */
+  .sync-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--text-dimmer);
+    display: inline-block;
+    margin-right: 6px;
+  }
+  .sync-dot.synced { background: var(--success); }
+  .sync-dot.syncing { background: var(--accent); animation: pulse 1s infinite; }
+  .sync-dot.error { background: var(--danger); }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  /* ── TABS ── */
+  .tabs {
+    display: flex;
+    gap: 0;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    padding: 0 20px;
+    overflow-x: auto;
+  }
+  .tab {
+    padding: 10px 18px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text-dim);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    white-space: nowrap;
+    transition: all 0.15s;
+    background: none;
+    border-top: none;
+    border-left: none;
+    border-right: none;
+  }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .tab:hover { color: var(--text); }
+
+  /* ── MAIN ── */
+  main { padding: 20px; max-width: 1100px; margin: 0 auto; }
+
+  .view { display: none; }
+  .view.active { display: block; }
+
+  /* ── SUMMARY CARDS ── */
+  .summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+  .summary-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+  }
+  .summary-card .label { font-size: 10px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+  .summary-card .value { font-size: 22px; color: var(--accent); font-family: var(--serif); }
+  .summary-card .value.negative { color: var(--danger); }
+  .summary-card .value.positive { color: var(--success); }
+  .summary-card .sub { font-size: 11px; color: var(--text-dimmer); margin-top: 3px; }
+
+  /* ── ITEM GRID ── */
+  .item-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 14px;
+  }
+
+  .item-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    transition: border-color 0.15s;
+    position: relative;
+  }
+  .item-card:hover { border-color: var(--accent); }
+  .item-card.sold { opacity: 0.65; }
+  .item-card.sold::after {
+    content: 'SOLD';
+    position: absolute;
+    top: 10px; right: 10px;
+    background: var(--success);
+    color: #fff;
+    font-size: 9px;
+    font-weight: 500;
+    padding: 2px 7px;
+    border-radius: 3px;
+    letter-spacing: 1px;
+  }
+
+  .item-photos {
+    height: 160px;
+    background: var(--surface2);
+    position: relative;
+    overflow: hidden;
+    cursor: pointer;
+  }
+  .item-photos img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    display: none;
+  }
+  .item-photos img.active { display: block; }
+  .photo-nav {
+    position: absolute;
+    bottom: 6px; right: 6px;
+    display: flex;
+    gap: 4px;
+  }
+  .photo-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.4);
+    cursor: pointer;
+  }
+  .photo-dot.active { background: var(--accent); }
+  .no-photo {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: var(--text-dimmer);
+    font-size: 11px;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .no-photo svg { opacity: 0.3; }
+
+  .item-body { padding: 12px; }
+  .item-name { font-family: var(--serif); font-size: 15px; color: var(--text); margin-bottom: 8px; line-height: 1.3; }
+  .item-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 10px; }
+  .item-meta-row { display: flex; flex-direction: column; }
+  .item-meta-row .k { font-size: 9px; color: var(--text-dimmer); text-transform: uppercase; letter-spacing: 0.8px; }
+  .item-meta-row .v { font-size: 12px; color: var(--text); margin-top: 1px; }
+  .item-meta-row .v.profit-pos { color: var(--success); }
+  .item-meta-row .v.profit-neg { color: var(--danger); }
+
+  .item-actions {
+    padding: 8px 12px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    gap: 6px;
+    justify-content: flex-end;
+  }
+
+  /* ── MODAL ── */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.75);
+    z-index: 200;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 20px;
+    overflow-y: auto;
+  }
+  .modal-overlay.open { display: flex; }
+
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    width: 100%;
+    max-width: 620px;
+    padding: 24px;
+    margin: auto;
+  }
+  .modal-title {
+    font-family: var(--serif);
+    font-size: 20px;
+    color: var(--accent);
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* ── FORM ── */
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+  .form-grid .full { grid-column: 1 / -1; }
+
+  .field { display: flex; flex-direction: column; gap: 5px; }
+  .field label { font-size: 10px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; }
+  .field input, .field select, .field textarea {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 13px;
+    padding: 8px 10px;
+    outline: none;
+    transition: border-color 0.15s;
+    width: 100%;
+  }
+  .field input:focus, .field select:focus, .field textarea:focus {
+    border-color: var(--accent);
+  }
+  .field textarea { resize: vertical; min-height: 70px; }
+  .field select option { background: var(--surface2); }
+
+  /* ── PHOTO UPLOAD ── */
+  .photo-upload-area {
+    border: 1px dashed var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.15s;
+    background: var(--surface2);
+  }
+  .photo-upload-area:hover { border-color: var(--accent); }
+  .photo-upload-area input { display: none; }
+  .photo-upload-area .hint { font-size: 11px; color: var(--text-dim); margin-top: 4px; }
+
+  .photo-preview-strip {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 10px;
+  }
+  .photo-thumb {
+    position: relative;
+    width: 72px; height: 72px;
+    border-radius: 4px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+  .photo-thumb img { width: 100%; height: 100%; object-fit: cover; }
+  .photo-thumb .remove-photo {
+    position: absolute;
+    top: 2px; right: 2px;
+    width: 18px; height: 18px;
+    background: rgba(0,0,0,0.7);
+    border: none;
+    border-radius: 50%;
+    color: #fff;
+    font-size: 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+  }
+
+  /* ── MODAL FOOTER ── */
+  .modal-footer {
+    margin-top: 20px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+  }
+
+  /* ── FILTER BAR ── */
+  .filter-bar {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .filter-bar input, .filter-bar select {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 12px;
+    padding: 7px 10px;
+    outline: none;
+  }
+  .filter-bar input:focus, .filter-bar select:focus { border-color: var(--accent); }
+  .filter-bar input { flex: 1; min-width: 160px; }
+
+  /* ── EMPTY STATE ── */
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text-dimmer);
+  }
+  .empty-state .big { font-family: var(--serif); font-size: 24px; color: var(--text-dim); margin-bottom: 8px; }
+
+  /* ── TOAST ── */
+  .toast {
+    position: fixed;
+    bottom: 20px; right: 20px;
+    background: var(--surface3);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 10px 16px;
+    font-size: 12px;
+    z-index: 300;
+    transform: translateY(80px);
+    opacity: 0;
+    transition: all 0.25s;
+  }
+  .toast.show { transform: translateY(0); opacity: 1; }
+  .toast.success { border-color: var(--success); color: var(--success); }
+  .toast.error { border-color: var(--danger); color: var(--danger); }
+
+  /* ── AUTH SCREEN ── */
+  #auth-screen {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 70vh;
+    gap: 20px;
+    text-align: center;
+  }
+  #auth-screen .big-title { font-family: var(--serif); font-size: 36px; color: var(--accent); }
+  #auth-screen .sub { color: var(--text-dim); font-size: 13px; max-width: 340px; line-height: 1.6; }
+
+  /* ── PHOTO LIGHTBOX ── */
+  .lightbox {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.92);
+    z-index: 400;
+    align-items: center;
+    justify-content: center;
+  }
+  .lightbox.open { display: flex; }
+  .lightbox img { max-width: 90vw; max-height: 90vh; object-fit: contain; border-radius: 4px; }
+  .lightbox-close {
+    position: absolute;
+    top: 16px; right: 20px;
+    font-size: 28px;
+    color: #fff;
+    cursor: pointer;
+    background: none;
+    border: none;
+    line-height: 1;
+  }
+  .lightbox-nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(255,255,255,0.1);
+    border: none;
+    color: #fff;
+    font-size: 24px;
+    padding: 12px 16px;
+    cursor: pointer;
+    border-radius: 4px;
+  }
+  .lightbox-nav.prev { left: 10px; }
+  .lightbox-nav.next { right: 10px; }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 600px) {
+    .form-grid { grid-template-columns: 1fr; }
+    .summary-grid { grid-template-columns: 1fr 1fr; }
+    .item-grid { grid-template-columns: 1fr; }
+    header { padding: 10px 14px; }
+    main { padding: 12px; }
+    .modal { padding: 16px; }
+  }
+
+  /* ── SECTION LABEL ── */
+  .section-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--text-dimmer);
+    margin: 20px 0 10px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--border);
+  }
+  .section-label:first-child { margin-top: 0; }
+
+  /* ── GOOGLE SIGN IN BUTTON ── */
+  .g-btn {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: #fff;
+    color: #333;
+    border: none;
+    border-radius: 6px;
+    padding: 11px 20px;
+    font-size: 14px;
+    font-family: var(--mono);
+    cursor: pointer;
+    font-weight: 500;
+  }
+  .g-btn:hover { background: #f5f5f5; }
+  .g-btn svg { width: 20px; height: 20px; }
+</style>
+</head>
+<body>
+
+<!-- LIGHTBOX -->
+<div class="lightbox" id="lightbox">
+  <button class="lightbox-close" onclick="closeLightbox()">✕</button>
+  <button class="lightbox-nav prev" onclick="lightboxNav(-1)">‹</button>
+  <img id="lightbox-img" src="" alt="">
+  <button class="lightbox-nav next" onclick="lightboxNav(1)">›</button>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- HEADER -->
+<header>
+  <div class="logo">
+    Silver Oyster Productions
+    <span>Booth Tracker</span>
+  </div>
+  <div class="header-right">
+    <span id="sync-status" style="font-size:11px;color:var(--text-dim);display:flex;align-items:center">
+      <span class="sync-dot" id="sync-dot"></span>
+      <span id="sync-text">Not connected</span>
+    </span>
+    <button class="btn btn-sm" id="sync-btn" onclick="saveToDrive()" style="display:none">Save</button>
+    <button class="btn btn-sm" id="auth-btn" onclick="signIn()">Connect Google Drive</button>
+    <button class="btn btn-accent" id="add-btn" onclick="openAddModal()" style="display:none">+ Add Item</button>
+  </div>
+</header>
+
+<!-- TABS -->
+<div class="tabs">
+  <button class="tab active" onclick="switchTab('inventory')">Inventory</button>
+  <button class="tab" onclick="switchTab('sold')">Sold</button>
+  <button class="tab" onclick="switchTab('summary')">Summary</button>
+</div>
+
+<!-- MAIN -->
+<main>
+  <!-- AUTH SCREEN -->
+  <div id="auth-screen">
+    <div class="big-title">Silver Oyster Productions</div>
+    <div class="sub">Connect your Google account (<strong style="color:var(--accent)">silveroysterproductions@gmail.com</strong>) to store and sync your booth inventory across all devices.</div>
+    <button class="g-btn" onclick="signIn()">
+      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+        <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+        <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
+        <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+      </svg>
+      Sign in with Google
+    </button>
+    <div style="font-size:11px;color:var(--text-dimmer);max-width:340px;line-height:1.6">
+      Data is saved as a JSON file in your Google Drive. Photos are embedded as base64. Works on any device with Chrome.
+    </div>
+  </div>
+
+  <!-- INVENTORY VIEW -->
+  <div class="view" id="view-inventory">
+    <div class="filter-bar">
+      <input type="text" id="search-inventory" placeholder="Search items..." oninput="renderInventory()">
+      <select id="filter-location" onchange="renderInventory()">
+        <option value="">All locations</option>
+      </select>
+    </div>
+    <div class="item-grid" id="inventory-grid"></div>
+    <div class="empty-state" id="inventory-empty" style="display:none">
+      <div class="big">No active items</div>
+      <div>Add your first item to get started.</div>
+    </div>
+  </div>
+
+  <!-- SOLD VIEW -->
+  <div class="view" id="view-sold">
+    <div class="filter-bar">
+      <input type="text" id="search-sold" placeholder="Search sold items..." oninput="renderSold()">
+    </div>
+    <div class="item-grid" id="sold-grid"></div>
+    <div class="empty-state" id="sold-empty" style="display:none">
+      <div class="big">No sold items yet</div>
+    </div>
+  </div>
+
+  <!-- SUMMARY VIEW -->
+  <div class="view" id="view-summary">
+    <div class="section-label">All Time</div>
+    <div class="summary-grid" id="summary-all"></div>
+    <div class="section-label">This Month</div>
+    <div class="summary-grid" id="summary-month"></div>
+  </div>
+</main>
+
+<!-- ADD / EDIT MODAL -->
+<div class="modal-overlay" id="item-modal">
+  <div class="modal">
+    <div class="modal-title" id="modal-title">Add Item</div>
+
+    <div class="form-grid">
+      <div class="field full">
+        <label>Item Name / Description</label>
+        <input type="text" id="f-name" placeholder="e.g. Vintage Cast Iron Skillet">
+      </div>
+
+      <div class="section-label full" style="margin-top:4px">Purchase Info</div>
+
+      <div class="field">
+        <label>Date Purchased</label>
+        <input type="date" id="f-date-purchased">
+      </div>
+      <div class="field">
+        <label>Location Purchased</label>
+        <input type="text" id="f-location" placeholder="e.g. Goodwill Pensacola">
+      </div>
+      <div class="field">
+        <label>Purchase Price ($)</label>
+        <input type="number" id="f-purchase-price" step="0.01" min="0" placeholder="0.00">
+      </div>
+
+      <div class="section-label full">Listing Info</div>
+
+      <div class="field">
+        <label>Date Listed</label>
+        <input type="date" id="f-date-listed">
+      </div>
+      <div class="field">
+        <label>Retail / List Price ($)</label>
+        <input type="number" id="f-retail-price" step="0.01" min="0" placeholder="0.00">
+      </div>
+
+      <div class="section-label full">Sale Info (fill when sold)</div>
+
+      <div class="field">
+        <label>Date Sold</label>
+        <input type="date" id="f-date-sold">
+      </div>
+      <div class="field">
+        <label>Price Paid by Buyer ($)</label>
+        <input type="number" id="f-sold-price" step="0.01" min="0" placeholder="0.00">
+      </div>
+      <div class="field">
+        <label>Booth / Landlord Commission ($)</label>
+        <input type="number" id="f-commission" step="0.01" min="0" placeholder="0.00">
+      </div>
+      <div class="field">
+        <label>Credit Card Fee ($)</label>
+        <input type="number" id="f-cc-fee" step="0.01" min="0" placeholder="0.00">
+      </div>
+
+      <div class="section-label full">Photos</div>
+
+      <div class="field full">
+        <div class="photo-upload-area" onclick="document.getElementById('photo-input').click()">
+          <div>📷 Click to add photos</div>
+          <div class="hint">JPEG, PNG, WebP — multiple allowed</div>
+          <input type="file" id="photo-input" accept="image/*" multiple onchange="handlePhotos(this)">
+        </div>
+        <div class="photo-preview-strip" id="photo-preview"></div>
+      </div>
+
+      <div class="field full">
+        <label>Notes</label>
+        <textarea id="f-notes" placeholder="Condition, provenance, anything useful..."></textarea>
+      </div>
+    </div>
+
+    <div style="font-size:11px;color:var(--text-dim);margin-top:12px" id="profit-preview"></div>
+
+    <div class="modal-footer">
+      <button class="btn btn-danger btn-sm" id="delete-btn" onclick="deleteItem()" style="display:none;margin-right:auto">Delete</button>
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-accent" onclick="saveItem()">Save Item</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════
+//  CONFIG — paste your Google OAuth Client ID here
+// ══════════════════════════════════════════════
+const CLIENT_ID = '322748139797-uplf8r5lrp28r8ad9tj6v2hugits54a6.apps.googleusercontent.com';
+const SCOPES = 'https://www.googleapis.com/auth/drive.appdata';
+const FILE_NAME = 'booth-tracker-data.json';
+
+// ══════════════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════════════
+let items = [];
+let editingId = null;
+let driveFileId = null;
+let tokenClient = null;
+let gapiInited = false;
+let gisInited = false;
+let lightboxPhotos = [];
+let lightboxIdx = 0;
+let currentPhotos = []; // photos being edited in modal
+
+// ══════════════════════════════════════════════
+//  GOOGLE IDENTITY / GAPI INIT
+// ══════════════════════════════════════════════
+function gapiLoaded() {
+  gapi.load('client', async () => {
+    await gapi.client.init({ discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'] });
+    gapiInited = true;
+    maybeEnableButtons();
+  });
+}
+
+function gisLoaded() {
+  tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: CLIENT_ID,
+    scope: SCOPES,
+    callback: async (resp) => {
+      if (resp.error) { showToast('Auth error: ' + resp.error, 'error'); return; }
+      setSyncStatus('syncing', 'Loading...');
+      await loadFromDrive();
+    }
+  });
+  gisInited = true;
+  maybeEnableButtons();
+}
+
+function maybeEnableButtons() {
+  if (gapiInited && gisInited && CLIENT_ID !== '322748139797-uplf8r5lrp28r8ad9tj6v2hugits54a6.apps.googleusercontent.com') {
+    // Auto attempt silent signin
+    tokenClient.requestAccessToken({ prompt: '' });
+  }
+}
+
+function signIn() {
+  if (!gapiInited || !gisInited) {
+    showToast('Google still loading — wait 3 seconds and try again.', 'error');
+    return;
+  }
+  tokenClient.requestAccessToken({ prompt: 'consent' });
+}
+
+
+
+// ══════════════════════════════════════════════
+//  DRIVE LOAD / SAVE
+// ══════════════════════════════════════════════
+async function loadFromDrive() {
+  try {
+    // Search appdata for our file
+    const res = await gapi.client.drive.files.list({
+      spaces: 'appDataFolder',
+      fields: 'files(id,name)',
+      q: `name='${FILE_NAME}'`
+    });
+    const files = res.result.files;
+    if (files && files.length > 0) {
+      driveFileId = files[0].id;
+      const content = await gapi.client.drive.files.get({ fileId: driveFileId, alt: 'media' });
+      items = JSON.parse(content.body) || [];
+    } else {
+      items = [];
+    }
+    showAppUI();
+    renderAll();
+    setSyncStatus('synced', 'Synced');
+  } catch(e) {
+    console.error(e);
+    setSyncStatus('error', 'Load error');
+    showToast('Failed to load from Drive', 'error');
+  }
+}
+
+async function saveToDrive() {
+  setSyncStatus('syncing', 'Saving...');
+  try {
+    const json = JSON.stringify(items, null, 2);
+    const blob = new Blob([json], {type: 'application/json'});
+    if (driveFileId) {
+      await fetch(`https://www.googleapis.com/upload/drive/v3/files/${driveFileId}?uploadType=media`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': 'Bearer ' + gapi.client.getToken().access_token,
+          'Content-Type': 'application/json'
+        },
+        body: json
+      });
+    } else {
+      const meta = { name: FILE_NAME, parents: ['appDataFolder'] };
+      const form = new FormData();
+      form.append('metadata', new Blob([JSON.stringify(meta)], {type:'application/json'}));
+      form.append('file', blob);
+      const r = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + gapi.client.getToken().access_token },
+        body: form
+      });
+      const data = await r.json();
+      driveFileId = data.id;
+    }
+    setSyncStatus('synced', 'Saved');
+    showToast('Saved to Google Drive', 'success');
+  } catch(e) {
+    console.error(e);
+    setSyncStatus('error', 'Save error');
+    showToast('Failed to save', 'error');
+  }
+}
+
+// ══════════════════════════════════════════════
+//  UI TOGGLES
+// ══════════════════════════════════════════════
+function showAppUI() {
+  document.getElementById('auth-screen').style.display = 'none';
+  document.getElementById('auth-btn').style.display = 'none';
+  document.getElementById('sync-btn').style.display = '';
+  document.getElementById('add-btn').style.display = '';
+  switchTab('inventory');
+}
+
+function setSyncStatus(state, text) {
+  const dot = document.getElementById('sync-dot');
+  dot.className = 'sync-dot ' + state;
+  document.getElementById('sync-text').textContent = text;
+}
+
+function switchTab(tab) {
+  document.querySelectorAll('.tab').forEach((t,i) => {
+    t.classList.toggle('active', ['inventory','sold','summary'][i] === tab);
+  });
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById('view-' + tab).classList.add('active');
+  if (tab === 'inventory') renderInventory();
+  if (tab === 'sold') renderSold();
+  if (tab === 'summary') renderSummary();
+}
+
+// ══════════════════════════════════════════════
+//  RENDER
+// ══════════════════════════════════════════════
+function renderAll() {
+  renderInventory();
+  renderSold();
+  renderSummary();
+  populateLocationFilter();
+}
+
+function fmtMoney(v) {
+  if (v === null || v === undefined || v === '') return '—';
+  return '$' + Number(v).toFixed(2);
+}
+function fmtDate(d) { return d || '—'; }
+
+function calcProfit(item) {
+  if (!item.soldPrice) return null;
+  const sold = Number(item.soldPrice) || 0;
+  const bought = Number(item.purchasePrice) || 0;
+  const comm = Number(item.commission) || 0;
+  const cc = Number(item.ccFee) || 0;
+  return sold - bought - comm - cc;
+}
+
+function itemCard(item) {
+  const profit = calcProfit(item);
+  const profitClass = profit === null ? '' : profit >= 0 ? 'profit-pos' : 'profit-neg';
+  const profitStr = profit === null ? '—' : fmtMoney(profit);
+
+  const photos = item.photos || [];
+  let photosHtml = '';
+  if (photos.length === 0) {
+    photosHtml = `<div class="no-photo"><svg width="32" height="32" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>No photos</div>`;
+  } else {
+    const imgs = photos.map((p, i) => `<img src="${p}" class="${i===0?'active':''}" alt="" onclick="openLightbox('${item.id}',${i})" style="cursor:zoom-in">`).join('');
+    const dots = photos.length > 1 ? photos.map((_, i) => `<div class="photo-dot ${i===0?'active':''}" onclick="cyclePhoto(event,'${item.id}',${i})"></div>`).join('') : '';
+    photosHtml = `${imgs}<div class="photo-nav">${dots}</div>`;
+  }
+
+  return `
+    <div class="item-card ${item.soldPrice ? 'sold' : ''}" id="card-${item.id}">
+      <div class="item-photos" id="photos-${item.id}">${photosHtml}</div>
+      <div class="item-body">
+        <div class="item-name">${escHtml(item.name || 'Unnamed Item')}</div>
+        <div class="item-meta">
+          <div class="item-meta-row"><span class="k">Purchased</span><span class="v">${fmtDate(item.datePurchased)}</span></div>
+          <div class="item-meta-row"><span class="k">Location</span><span class="v">${escHtml(item.location||'—')}</span></div>
+          <div class="item-meta-row"><span class="k">Buy Price</span><span class="v">${fmtMoney(item.purchasePrice)}</span></div>
+          <div class="item-meta-row"><span class="k">List Price</span><span class="v">${fmtMoney(item.retailPrice)}</span></div>
+          ${item.soldPrice ? `<div class="item-meta-row"><span class="k">Sold For</span><span class="v">${fmtMoney(item.soldPrice)}</span></div>` : ''}
+          ${item.dateSold ? `<div class="item-meta-row"><span class="k">Date Sold</span><span class="v">${fmtDate(item.dateSold)}</span></div>` : ''}
+          ${profit !== null ? `<div class="item-meta-row"><span class="k">Profit</span><span class="v ${profitClass}">${profitStr}</span></div>` : ''}
+          ${item.commission ? `<div class="item-meta-row"><span class="k">Commission</span><span class="v">${fmtMoney(item.commission)}</span></div>` : ''}
+        </div>
+      </div>
+      <div class="item-actions">
+        <button class="btn btn-sm" onclick="openEditModal('${item.id}')">Edit</button>
+      </div>
+    </div>
+  `;
+}
+
+function renderInventory() {
+  const q = (document.getElementById('search-inventory').value || '').toLowerCase();
+  const loc = document.getElementById('filter-location').value;
+  const active = items.filter(i => !i.soldPrice &&
+    (!q || (i.name||'').toLowerCase().includes(q) || (i.location||'').toLowerCase().includes(q)) &&
+    (!loc || i.location === loc)
+  );
+  const grid = document.getElementById('inventory-grid');
+  const empty = document.getElementById('inventory-empty');
+  if (active.length === 0) { grid.innerHTML=''; empty.style.display=''; }
+  else { empty.style.display='none'; grid.innerHTML = active.map(itemCard).join(''); }
+}
+
+function renderSold() {
+  const q = (document.getElementById('search-sold').value || '').toLowerCase();
+  const sold = items.filter(i => i.soldPrice &&
+    (!q || (i.name||'').toLowerCase().includes(q))
+  );
+  const grid = document.getElementById('sold-grid');
+  const empty = document.getElementById('sold-empty');
+  if (sold.length === 0) { grid.innerHTML=''; empty.style.display=''; }
+  else { empty.style.display='none'; grid.innerHTML = sold.map(itemCard).join(''); }
+}
+
+function renderSummary() {
+  const allSold = items.filter(i => i.soldPrice);
+  const now = new Date();
+  const thisMonth = allSold.filter(i => {
+    if (!i.dateSold) return false;
+    const d = new Date(i.dateSold);
+    return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+  });
+
+  function summaryCards(subset, allItems) {
+    const totalBought = allItems.reduce((a,i) => a + (Number(i.purchasePrice)||0), 0);
+    const totalSold = subset.reduce((a,i) => a + (Number(i.soldPrice)||0), 0);
+    const totalComm = subset.reduce((a,i) => a + (Number(i.commission)||0), 0);
+    const totalCC = subset.reduce((a,i) => a + (Number(i.ccFee)||0), 0);
+    const totalProfit = subset.reduce((a,i) => { const p=calcProfit(i); return a+(p||0); }, 0);
+    const profitClass = totalProfit >= 0 ? 'positive' : 'negative';
+    return `
+      <div class="summary-card"><div class="label">Items Purchased</div><div class="value">${allItems.length}</div></div>
+      <div class="summary-card"><div class="label">Items Sold</div><div class="value">${subset.length}</div></div>
+      <div class="summary-card"><div class="label">Total Purchased</div><div class="value">${fmtMoney(totalBought)}</div></div>
+      <div class="summary-card"><div class="label">Total Revenue</div><div class="value">${fmtMoney(totalSold)}</div></div>
+      <div class="summary-card"><div class="label">Commissions Paid</div><div class="value">${fmtMoney(totalComm)}</div></div>
+      <div class="summary-card"><div class="label">CC Fees Paid</div><div class="value">${fmtMoney(totalCC)}</div></div>
+      <div class="summary-card"><div class="label">Net Profit</div><div class="value ${profitClass}">${fmtMoney(totalProfit)}</div></div>
+    `;
+  }
+
+  const thisMonthItems = items.filter(i => {
+    if (!i.datePurchased) return false;
+    const d = new Date(i.datePurchased);
+    return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+  });
+
+  document.getElementById('summary-all').innerHTML = summaryCards(allSold, items);
+  document.getElementById('summary-month').innerHTML = summaryCards(thisMonth, thisMonthItems);
+}
+
+function populateLocationFilter() {
+  const locs = [...new Set(items.map(i=>i.location).filter(Boolean))].sort();
+  const sel = document.getElementById('filter-location');
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">All locations</option>' + locs.map(l=>`<option value="${escHtml(l)}">${escHtml(l)}</option>`).join('');
+  if (locs.includes(cur)) sel.value = cur;
+}
+
+// ══════════════════════════════════════════════
+//  PHOTO HANDLING
+// ══════════════════════════════════════════════
+function handlePhotos(input) {
+  const files = Array.from(input.files);
+  files.forEach(file => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      currentPhotos.push(e.target.result);
+      renderPhotoPreview();
+    };
+    reader.readAsDataURL(file);
+  });
+  input.value = '';
+}
+
+function renderPhotoPreview() {
+  const strip = document.getElementById('photo-preview');
+  strip.innerHTML = currentPhotos.map((p, i) => `
+    <div class="photo-thumb">
+      <img src="${p}" alt="">
+      <button class="remove-photo" onclick="removePhoto(${i})">×</button>
+    </div>
+  `).join('');
+  updateProfitPreview();
+}
+
+function removePhoto(idx) {
+  currentPhotos.splice(idx, 1);
+  renderPhotoPreview();
+}
+
+// ══════════════════════════════════════════════
+//  MODAL
+// ══════════════════════════════════════════════
+function openAddModal() {
+  editingId = null;
+  currentPhotos = [];
+  document.getElementById('modal-title').textContent = 'Add Item';
+  document.getElementById('delete-btn').style.display = 'none';
+  clearForm();
+  document.getElementById('item-modal').classList.add('open');
+}
+
+function openEditModal(id) {
+  const item = items.find(i => i.id === id);
+  if (!item) return;
+  editingId = id;
+  currentPhotos = [...(item.photos||[])];
+  document.getElementById('modal-title').textContent = 'Edit Item';
+  document.getElementById('delete-btn').style.display = '';
+  fillForm(item);
+  renderPhotoPreview();
+  document.getElementById('item-modal').classList.add('open');
+}
+
+function closeModal() {
+  document.getElementById('item-modal').classList.remove('open');
+  editingId = null;
+  currentPhotos = [];
+}
+
+function clearForm() {
+  ['name','location','notes'].forEach(id => document.getElementById('f-'+id).value = '');
+  ['date-purchased','date-listed','date-sold'].forEach(id => document.getElementById('f-'+id).value = '');
+  ['purchase-price','retail-price','sold-price','commission','cc-fee'].forEach(id => document.getElementById('f-'+id).value = '');
+  document.getElementById('photo-preview').innerHTML = '';
+  document.getElementById('profit-preview').textContent = '';
+}
+
+function fillForm(item) {
+  document.getElementById('f-name').value = item.name || '';
+  document.getElementById('f-location').value = item.location || '';
+  document.getElementById('f-notes').value = item.notes || '';
+  document.getElementById('f-date-purchased').value = item.datePurchased || '';
+  document.getElementById('f-date-listed').value = item.dateListed || '';
+  document.getElementById('f-date-sold').value = item.dateSold || '';
+  document.getElementById('f-purchase-price').value = item.purchasePrice || '';
+  document.getElementById('f-retail-price').value = item.retailPrice || '';
+  document.getElementById('f-sold-price').value = item.soldPrice || '';
+  document.getElementById('f-commission').value = item.commission || '';
+  document.getElementById('f-cc-fee').value = item.ccFee || '';
+  updateProfitPreview();
+}
+
+function updateProfitPreview() {
+  const sold = Number(document.getElementById('f-sold-price').value) || 0;
+  if (!sold) { document.getElementById('profit-preview').textContent = ''; return; }
+  const bought = Number(document.getElementById('f-purchase-price').value) || 0;
+  const comm = Number(document.getElementById('f-commission').value) || 0;
+  const cc = Number(document.getElementById('f-cc-fee').value) || 0;
+  const profit = sold - bought - comm - cc;
+  const color = profit >= 0 ? 'var(--success)' : 'var(--danger)';
+  document.getElementById('profit-preview').innerHTML = `<span style="color:${color}">Projected profit: ${fmtMoney(profit)}</span>`;
+}
+
+// live profit update
+['f-sold-price','f-purchase-price','f-commission','f-cc-fee'].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('input', updateProfitPreview);
+});
+
+function saveItem() {
+  const name = document.getElementById('f-name').value.trim();
+  if (!name) { showToast('Item name is required', 'error'); return; }
+
+  const itemData = {
+    name,
+    location: document.getElementById('f-location').value.trim(),
+    notes: document.getElementById('f-notes').value.trim(),
+    datePurchased: document.getElementById('f-date-purchased').value,
+    dateListed: document.getElementById('f-date-listed').value,
+    dateSold: document.getElementById('f-date-sold').value,
+    purchasePrice: document.getElementById('f-purchase-price').value,
+    retailPrice: document.getElementById('f-retail-price').value,
+    soldPrice: document.getElementById('f-sold-price').value,
+    commission: document.getElementById('f-commission').value,
+    ccFee: document.getElementById('f-cc-fee').value,
+    photos: [...currentPhotos]
+  };
+
+  if (editingId) {
+    const idx = items.findIndex(i => i.id === editingId);
+    items[idx] = { ...items[idx], ...itemData };
+  } else {
+    itemData.id = 'item_' + Date.now() + '_' + Math.random().toString(36).substr(2,6);
+    itemData.createdAt = new Date().toISOString();
+    items.push(itemData);
+  }
+
+  closeModal();
+  renderAll();
+  saveToDrive();
+}
+
+function deleteItem() {
+  if (!confirm('Delete this item? This cannot be undone.')) return;
+  items = items.filter(i => i.id !== editingId);
+  closeModal();
+  renderAll();
+  saveToDrive();
+}
+
+// ══════════════════════════════════════════════
+//  PHOTO CYCLING IN CARDS
+// ══════════════════════════════════════════════
+function cyclePhoto(e, itemId, idx) {
+  e.stopPropagation();
+  const container = document.getElementById('photos-' + itemId);
+  container.querySelectorAll('img').forEach((img, i) => img.classList.toggle('active', i === idx));
+  container.querySelectorAll('.photo-dot').forEach((d, i) => d.classList.toggle('active', i === idx));
+}
+
+// ══════════════════════════════════════════════
+//  LIGHTBOX
+// ══════════════════════════════════════════════
+function openLightbox(itemId, startIdx) {
+  const item = items.find(i => i.id === itemId);
+  if (!item || !item.photos?.length) return;
+  lightboxPhotos = item.photos;
+  lightboxIdx = startIdx;
+  document.getElementById('lightbox-img').src = lightboxPhotos[lightboxIdx];
+  document.getElementById('lightbox').classList.add('open');
+}
+
+function closeLightbox() {
+  document.getElementById('lightbox').classList.remove('open');
+}
+
+function lightboxNav(dir) {
+  lightboxIdx = (lightboxIdx + dir + lightboxPhotos.length) % lightboxPhotos.length;
+  document.getElementById('lightbox-img').src = lightboxPhotos[lightboxIdx];
+}
+
+document.getElementById('lightbox').addEventListener('click', e => { if (e.target === e.currentTarget) closeLightbox(); });
+document.addEventListener('keydown', e => { if (e.key==='Escape') closeLightbox(); if(e.key==='ArrowLeft') lightboxNav(-1); if(e.key==='ArrowRight') lightboxNav(1); });
+
+// ══════════════════════════════════════════════
+//  UTILS
+// ══════════════════════════════════════════════
+function escHtml(s) {
+  return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+let toastTimer;
+function showToast(msg, type='') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show ' + type;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// Close modal on overlay click
+document.getElementById('item-modal').addEventListener('click', e => { if (e.target===e.currentTarget) closeModal(); });
+
+// ══════════════════════════════════════════════
+//  OFFLINE FALLBACK — local storage if no Drive
+// ══════════════════════════════════════════════
+// Load from localStorage as fallback while Google loads
+const saved = localStorage.getItem('booth-tracker-local');
+if (saved) items = JSON.parse(saved);
+</script>
+
+<!-- Load Google APIs -->
+<script src="https://apis.google.com/js/api.js" onload="gapiLoaded()"></script>
+<script src="https://accounts.google.com/gsi/client" onload="gisLoaded()"></script>
+</body>
+</html>
